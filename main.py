@@ -9,17 +9,6 @@ from database import Database
 def main():
     db = Database(dbname='osii', user='postgres', password='admin')
     db.create_table()
-    # Insertar datos
-    # db.insert_data(
-    #     '2024-05-07',
-    #     1.0,
-    #     2.0,
-    #     3.0,
-    #     0.5,
-    #     0.5,
-    #     0.5,
-    #     '2024-05-07 12:00:00',
-    #     10.0)
 
 
 # while True:
