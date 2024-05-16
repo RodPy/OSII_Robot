@@ -24,16 +24,31 @@ def generar_codigo_g_para_cilindro_vertical(diametro, altura, pasos=100, velocid
 
 def exportar_codigo_g_a_archivo(codigo_g, nombre_archivo):
     with open(nombre_archivo, 'w') as archivo:
+        # Escribir configuraciones iniciales
+        archivo.write("G21\n")  # Establecer unidades en milímetros
+        archivo.write("G17\n")  # Seleccionar plano XY
+        archivo.write("G90\n")  # Posicionamiento absoluto
+
         for linea in codigo_g:
             archivo.write(linea + '\n')
 
 # Ejemplo de uso
-diametro = 50  # Diámetro del cilindro en milímetros
-altura = 100   # Altura del cilindro en milímetros
+diametro = 10  # Diámetro del cilindro en milímetros
+altura = 50   # Altura del cilindro en milímetros
 codigo_g_cilindro = generar_codigo_g_para_cilindro_vertical(diametro, altura)
 
 # Nombre del archivo de salida
-nombre_archivo = 'codigo_g_cilindro.txt'
+nombre_archivo = 'codigo_g_cilindro.gcode'
 
 # Exportar el código G generado a un archivo de texto
 exportar_codigo_g_a_archivo(codigo_g_cilindro, nombre_archivo)
+
+
+
+
+
+
+
+
+
+
