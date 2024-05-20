@@ -8,10 +8,10 @@ import time
 from database import Database
 
 def main():
-    db = Database(dbname='osii', user='postgres', password='admin')
+    db = Database(dbname='osii2', user='postgres', password='admin')
     db.create_table()
 
-    puerto_serial = "COM5"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
+    puerto_serial = "COM3"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
     baudios = 115200  # Ajusta la velocidad de baudios según la configuración de tu impresora
 
     serial_port = conectar_puerto_serial(puerto_serial, baudios)
@@ -25,7 +25,7 @@ def main():
         # print(f'close -> {Sensor.close()}')
         # time.sleep(2)
 
-    radius=100
+    radius=10
     step= 1
     speed= 100
     sample_time=1
@@ -33,11 +33,22 @@ def main():
     print(f'Esfera Radio= {radius} Pasos = {step}')
 
     g_code=[]
-    g_code.append()
 
-    g_code = generate_g_code_for_sphere(speep=speed)
-    print(type(g_code))
+    g_code = generate_g_code_for_sphere()
     c=0
+    codigo_g_a_enviar = "$X\n"
+    enviar_codigo_g(serial_port, codigo_g_a_enviar)
+    time.sleep(sample_time+10)
+
+    codigo_g_a_enviar = "$X\n"
+    enviar_codigo_g(serial_port,codigo_g_a_enviar)
+    time.sleep(sample_time+10)
+    #
+    # codigo_g_a_enviar="G10 P0 L20 X0 Y0 Z0 \n"
+    # enviar_codigo_g(serial_port,codigo_g_a_enviar)
+    codigo_g_a_enviar = f"G21 G17 G90 G1 X0 Y0 Z0 F400\n"
+    enviar_codigo_g(serial_port, codigo_g_a_enviar)
+    time.sleep(sample_time+5)
 
     for X_code,Y_code, Z_code, speed in g_code:
         c+=1
@@ -47,7 +58,10 @@ def main():
         if serial_port:
             codigo_g_a_enviar = f"G21 G17 G90 G1 X{X_code:.2f} Y{Y_code:.2f} Z{Z_code:.2f} F{speed}\n"
             enviar_codigo_g(serial_port, codigo_g_a_enviar)
-            cerrar_puerto_serial(serial_port)
+            # cerrar_puerto_serial(serial_port)
+
+
+        time.sleep(sample_time)
 
         db.insert_data  (
             # datetime.now().date(),
@@ -62,7 +76,6 @@ def main():
             step
         )
         # db.insert_data(data_to_insert)
-        time.sleep(sample_time)
 
     db.close()
 

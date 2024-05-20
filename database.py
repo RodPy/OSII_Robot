@@ -13,6 +13,7 @@ class Database:
         )
         self.cur = self.conn.cursor()
 
+
     def create_table(self):
         create_table_query = '''
             CREATE TABLE IF NOT EXISTS data (

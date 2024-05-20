@@ -7,7 +7,7 @@ from serial.serialutil import PortNotOpenError
 
 class GaussmeterReader:
     # def __init__(self, magnetometer_port='/dev/ttyUSB0'):
-    def __init__(self, magnetometer_port='COM3'):
+    def __init__(self, magnetometer_port='COM4'):
         try:
             # Check if the port is already open
             if hasattr(self, 'magnetometer') and self.magnetometer.is_open:

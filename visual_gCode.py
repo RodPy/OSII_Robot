@@ -4,7 +4,7 @@ import serial
 import time
 
 # Configuración de la conexión serial
-ser = serial.Serial('COM6', 115200, timeout=1)
+ser = serial.Serial('COM3', 115200, timeout=1)
 
 # Función para enviar código G desde la entrada de texto
 def send_gcode():
