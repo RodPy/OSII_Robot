@@ -41,7 +41,7 @@ def enviar_codigo_g(ser, codigo_g):
         ser.write(codigo_g.encode('utf-8'))
         time.sleep(1)  # Esperar un momento para obtener la respuesta
         response = ser.read(ser.in_waiting).decode('utf-8')
-        print(response)
+        return str(response)
 
 def cerrar_puerto_serial(ser):
     if ser.is_open:

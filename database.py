@@ -39,7 +39,7 @@ class Database:
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         '''
         self.cur.execute(insert_query, (
-        date, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance))
+            date, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance))
         self.conn.commit()
 
     def select_all_data(self):

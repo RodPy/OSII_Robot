@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 pi = math.pi
 
 # Función para generar el código G para una esfera
-def generate_g_code_for_sphere(radius=10, step=1, file_out='sphere_gcode.gcode', speed=150):
+def generate_g_code_for_sphere(radius=125, step=10, file_out='sphere_gcode.gcode', speed=450):
     with open(file_out, 'w') as archivo:
         # Escribir configuraciones iniciales
         # archivo.write("G21\n")  # Establecer unidades en milímetros
@@ -23,10 +23,14 @@ def generate_g_code_for_sphere(radius=10, step=1, file_out='sphere_gcode.gcode',
             # Calcular el radio de la sección circular a esa altura
             current_radius = round(math.sqrt(radius ** 2 - z ** 2),2)
 
+            # Calcular el ángulo de paso, asegurando que no sea cero
+            step_angle = (step / (0.1 + current_radius)) * (180 / pi)
+            step_angle = max(1, int(step_angle))  # Asegurar que el paso mínimo sea 1
+
             # Generar los puntos de corte en la circunferencia
-            for theta in range(0, 360, int((step/(0.1+current_radius))*(180/pi))):
-                x = round(current_radius * math.cos(math.radians(theta)),2)
-                y = round(current_radius * math.sin(math.radians(theta)),2)
+            for theta in range(0, 360, step_angle):
+                x = round(current_radius * math.cos(math.radians(theta)), 2)
+                y = round(current_radius * math.sin(math.radians(theta)), 2)
                 g_code.append((x, y, z, speed))
 
                 # Escribir comando G-code para mover al siguiente punto
@@ -101,11 +105,11 @@ def calcular_tiempo_de_recorrido(nombre_archivo):
     return tiempo_total
 
 # Parámetros de la esfera
-radius = 10
-step = 1
-
-# Llamar a la función para graficar la esfera con la simulación del código G
-plot_sphere_with_g_code(radius, step)
-
+# radius = 65
+# step = 1
+#
+# # Llamar a la función para graficar la esfera con la simulación del código G
+# plot_sphere_with_g_code(radius, step)
+generate_g_code_for_sphere()
 tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode.gcode")
 print("Tiempo de recorrido total:", tiempo_recorrido, "minutos")
