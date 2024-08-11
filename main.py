@@ -8,7 +8,7 @@ import time
 from database import Database
 
 def main():
-    db = Database(dbname='OssiJune_GX', user='postgres', password='admin')
+    db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
     db.create_table()
 
     puerto_serial = "COM3"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)

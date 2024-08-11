@@ -14,7 +14,7 @@ class Database:
             self.conn.close()
 
 # Conexión a la base de datos PostgreSQL
-db = Database(dbname='OssiJune_GX', user='postgres', password='admin')
+db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
 
 try:
     cursor = db.conn.cursor()
@@ -49,7 +49,7 @@ cbar.set_label('y_probe')
 ax.set_xlabel('coordinate_x')
 ax.set_ylabel('coordinate_y')
 ax.set_zlabel('coordinate_z')
-ax.set_title('Mapa de Calor 3D de y_probe en función de coordinate_x, coordinate_y y coordinate_z')
+ax.set_title('Heatmap 3D de Y_PROBE')
 
 
 max= df['y_probe'].max()
