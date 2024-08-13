@@ -1,9 +1,29 @@
 import psycopg2
 from psycopg2 import sql
 
-
 class Database:
     def __init__(self, dbname, user, password, host='localhost', port=5432):
+        self.dbname = dbname
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+
+        # Conectarse a PostgreSQL sin seleccionar ninguna base de datos en particular
+        self.conn = psycopg2.connect(
+            dbname="postgres",  # Base de datos por defecto de PostgreSQL
+            user=user,
+            password=password,
+            host=host,
+            port=port
+        )
+        self.conn.autocommit = True  # Permitir la creación de la base de datos
+        self.cur = self.conn.cursor()
+
+        # Crear la base de datos si no existe
+        self.create_database()
+
+        # Conectarse a la base de datos específica
         self.conn = psycopg2.connect(
             dbname=dbname,
             user=user,
@@ -13,6 +33,12 @@ class Database:
         )
         self.cur = self.conn.cursor()
 
+    def create_database(self):
+        # Crear la base de datos si no existe
+        self.cur.execute(sql.SQL("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s"), [self.dbname])
+        exists = self.cur.fetchone()
+        if not exists:
+            self.cur.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname)))
 
     def create_table(self):
         create_table_query = '''

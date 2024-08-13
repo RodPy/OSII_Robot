@@ -14,7 +14,7 @@ class Database:
             self.conn.close()
 
 # Conexión a la base de datos PostgreSQL
-db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
+db = Database(dbname='OssiAGOSTO_YY_SHIM', user='postgres', password='admin')
 
 try:
     cursor = db.conn.cursor()
@@ -22,6 +22,9 @@ try:
     # Paso 2: Extraer los datos
     query = "SELECT coordinate_x, coordinate_y, coordinate_z, y_probe FROM data"
     df = pd.read_sql_query(query, db.conn)
+
+    # Exportar a CSV
+    df.to_csv('output_data.csv', index=False)  # Exporta el DataFrame a un archivo CSV
 
 finally:
     # Cerrar el cursor y la conexión
@@ -51,13 +54,12 @@ ax.set_ylabel('coordinate_y')
 ax.set_zlabel('coordinate_z')
 ax.set_title('Heatmap 3D de Y_PROBE')
 
-
-max= df['y_probe'].max()
-min= df['y_probe'].min()
+max = df['y_probe'].max()
+min = df['y_probe'].min()
 prom = df['y_probe'].mean()
 center = 436
 ppm = ((max-min)/prom)*1000000
 
-print(f"Max: {max} - Min: {min} - prom: {prom} - center={center} - ppm: {ppm}  ")
+print(f"Max: {max} - Min: {min} - prom: {prom} - center={center} - ppm: {ppm}")
 
 plt.show()

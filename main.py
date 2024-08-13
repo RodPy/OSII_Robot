@@ -8,10 +8,10 @@ import time
 from database import Database
 
 def main():
-    db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
+    db = Database(dbname='OssiAGOSTO_YY_SHIM', user='postgres', password='admin')
     db.create_table()
 
-    puerto_serial = "COM3"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
+    puerto_serial = "/dev/ttyACM1"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
     baudios = 115200  # Ajusta la velocidad de baudios según la configuración de tu impresora
 
     serial_port = conectar_puerto_serial(puerto_serial, baudios)
@@ -51,6 +51,20 @@ def main():
     print(f"origen -> {codigo_g_a_enviar}")
     print(enviar_codigo_g(serial_port, codigo_g_a_enviar))
     time.sleep(sample_time+5)
+
+    db.insert_data(
+                datetime.now().date(),
+                # '2024-06-07',
+                0,
+                0,
+                0,
+                Sensor.read_gaussmeter(),
+                Sensor.read_gaussmeter(),
+                Sensor.read_gaussmeter(),
+                datetime.now().date(),
+                # '2024-07-06 12:00:00',
+                step
+            )
 
     codigo_g_a_enviar = f"G21 G17 G90 G1 X0.00 Y0.00 Z-110.00 F400\n"
     print(f'cerca -> {codigo_g_a_enviar}')

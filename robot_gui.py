@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
 import serial.tools.list_ports
-
+import main
+import visual_bd_test
 
 class SimuladorApp:
     def __init__(self, root):
@@ -127,9 +128,11 @@ class SimuladorApp:
 
     def simular(self):
         self.output_terminal.insert(tk.END, "Simulación en progreso...\n")
+        visual_bd_test.plot()
 
     def iniciar(self):
         self.output_terminal.insert(tk.END, "Iniciando...\n")
+        main.main()
 
     def parar(self):
         self.output_terminal.insert(tk.END, "Parado\n")

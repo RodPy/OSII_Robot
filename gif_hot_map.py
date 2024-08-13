@@ -16,7 +16,7 @@ class Database:
             self.conn.close()
 
 # Conexión a la base de datos PostgreSQL
-db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
+db = Database(dbname='OssiAGOSTO_YY', user='postgres', password='admin')
 
 try:
     cursor = db.conn.cursor()

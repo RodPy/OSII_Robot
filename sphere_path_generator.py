@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 pi = math.pi
 
 # Función para generar el código G para una esfera
-def generate_g_code_for_sphere(radius=125, step=10, file_out='sphere_gcode.gcode', speed=450):
+def generate_g_code_for_sphere(radius=100, step=10, file_out='sphere_gcode.gcode', speed=450):
     with open(file_out, 'w') as archivo:
         # Escribir configuraciones iniciales
         # archivo.write("G21\n")  # Establecer unidades en milímetros
@@ -76,33 +76,40 @@ def plot_sphere_with_g_code(radius, step):
     # Mostrar la gráfica
     plt.show()
 
-def calcular_tiempo_de_recorrido(nombre_archivo):
-    tiempo_total = 0
-    ultima_x = ultima_y = ultima_z = None
-    with open(nombre_archivo, 'r') as archivo:
-        for linea in archivo:
-            if linea.startswith("G1"):
-                valores = linea.split()
-                velocidad = None
-                distancia = None
-                for valor in valores:
-                    if valor.startswith("F"):
-                        velocidad = float(valor[1:])
-                    elif valor.startswith("X"):
-                        x = float(valor[1:])
-                    elif valor.startswith("Y"):
-                        y = float(valor[1:])
-                    elif valor.startswith("Z"):
-                        z = float(valor[1:])
-                if ultima_x is not None and ultima_y is not None and ultima_z is not None:
-                    distancia = ((x - ultima_x) ** 2 + (y - ultima_y) ** 2 + (z - ultima_z) ** 2) ** 0.5
-                if velocidad and distancia:
-                    tiempo = distancia / velocidad
-                    tiempo_total += tiempo
-                ultima_x = x
-                ultima_y = y
-                ultima_z = z
-    return tiempo_total
+def calcular_tiempo_de_recorrido(archivo_gcode):
+# Velocidad de avance en mm/min (ajustar según tu configuración)
+    velocidad_avance = 450  # Ejemplo: 1000 mm/min
+
+    # Inicializar variables
+    distancia_total = 0.0
+    ultima_x = 0.0
+    ultima_y = 0.0
+    ultima_z = 0.0
+
+    # Leer el archivo G-code
+    with open(archivo_gcode, 'r') as file:
+        for linea in file:
+            # Buscar comandos de movimiento (G1) y extraer coordenadas
+            if linea.startswith('G1'):
+                x_match = re.search(r'X([-\d.]+)', linea)
+                y_match = re.search(r'Y([-\d.]+)', linea)
+                z_match = re.search(r'Z([-\d.]+)', linea)
+                
+                x = float(x_match.group(1)) if x_match else ultima_x
+                y = float(y_match.group(1)) if y_match else ultima_y
+                z = float(z_match.group(1)) if z_match else ultima_z
+                
+                # Calcular la distancia entre el punto actual y el último punto
+                distancia = ((x - ultima_x)**2 + (y - ultima_y)**2 + (z - ultima_z)**2)**0.5
+                distancia_total += distancia
+
+                # Actualizar la última posición
+                ultima_x, ultima_y, ultima_z = x, y, z
+
+    # Calcular el tiempo total de recorrido
+    tiempo_total_minutos = distancia_total / velocidad_avance
+
+    return tiempo_total_minutos
 
 # Parámetros de la esfera
 # radius = 65
