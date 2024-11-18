@@ -1,7 +1,7 @@
 # GaussmeterReader Class
 # Adapted by Rodney Rojas from Tom's work
 # Purpose: This class handles the communication with a magnetometer via a serial connection.
-# It provides functionality to open the serial port, read magnetic field strength values, 
+# It provides functionality to open the serial port, read magnetic field strength values,
 # and close the connection to the magnetometer.
 # Version: August 2024
 
@@ -81,3 +81,11 @@ class GaussmeterReader:
         if self.magnetometer.is_open:
             self.magnetometer.close()
             print("Magnetometer connection closed.")
+
+
+
+
+
+
+
+

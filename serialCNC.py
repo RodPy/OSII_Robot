@@ -1,83 +1,122 @@
+"""
+August 2024 - Version 1.5
+Author: Rodney Rojas - Sustainable MRI Lab
+
+Description:
+This script facilitates communication with a device via a serial port.
+It includes functions to send G-code commands, receive responses, and manage the serial connection.
+Designed for devices such as 3D printers or CNC controllers.
+"""
+
 import serial
 import time
 
-def conectar_puerto_serial(puerto, baudios):
+def connect_serial_port(port, baud_rate=115200):
+    """
+    Establishes a connection to the specified serial port.
+
+    Parameters:
+        port (str): Serial port (e.g., "COM3" or "/dev/ttyUSB0").
+        baud_rate (int): Communication speed in baud.
+
+    Returns:
+        serial.Serial: Serial port object if the connection is successful, None otherwise.
+    """
     try:
-        ser = serial.Serial(puerto, baudios, timeout=1)
-        print(f"Conectado a {ser.name}")
+        ser = serial.Serial(port, baud_rate, timeout=1)
+        print(f"Connected to {ser.name}")
         return ser
     except serial.SerialException as e:
-        print(f"Error al conectar al puerto serial: {e}")
+        print(f"Error connecting to serial port: {e}")
         return None
 
-import serial
-import time
+def send_g_code_with_confirmation(ser, g_code, timeout=15):
+    """
+    Sends G-code to the connected device and waits for an "ok" response.
 
-def enviar_codigo_g2(ser, codigo_g, timeout=15):
+    Parameters:
+        ser (serial.Serial): Serial port object.
+        g_code (str): G-code command to send.
+        timeout (int): Maximum time to wait for a response in seconds.
+
+    Returns:
+        bool: True if "ok" is received, False otherwise.
+    """
     try:
-        # Enviar el código G al dispositivo
-        ser.write(codigo_g.encode('utf-8'))
-        print(f"Código G enviado: {codigo_g}")
+        ser.write(g_code.encode('utf-8'))
+        print(f"G-code sent: {g_code}")
 
-        # Esperar una respuesta "ok" del dispositivo
         start_time = time.time()
         while True:
             if ser.in_waiting > 0:
-                respuesta = ser.readline().decode('utf-8').strip()
-                print(f"Respuesta recibida: {respuesta}")
-                if respuesta.lower() == "ok":
-                    print("Respuesta 'ok' recibida. Continuando...")
+                response = ser.readline().decode('utf-8').strip()
+                print(f"Response: {response}")
+                if response.lower() == "ok":
                     return True
             if time.time() - start_time > timeout:
-                print("Tiempo de espera agotado. No se recibió respuesta 'ok'.")
+                print("Timeout: 'ok' response not received.")
                 return False
     except serial.SerialException as e:
-        print(f"Error al enviar código G: {e}")
+        print(f"Error sending G-code: {e}")
         return False
 
+def send_g_code(ser, g_code):
+    """
+    Sends G-code to the connected device and reads the response.
 
-def enviar_codigo_g(ser, codigo_g):
-    if codigo_g.strip():
-        ser.write(codigo_g.encode('utf-8'))
-        time.sleep(1)  # Esperar un momento para obtener la respuesta
-        response = ser.read(ser.in_waiting).decode('utf-8')
-        return str(response)
+    Parameters:
+        ser (serial.Serial): Serial port object.
+        g_code (str): G-code command to send.
 
-def cerrar_puerto_serial(ser):
+    Returns:
+        str: Response from the device.
+    """
+    if g_code.strip():
+        ser.write(g_code.encode('utf-8'))
+        time.sleep(1)
+        return ser.read(ser.in_waiting).decode('utf-8')
+
+def close_serial_port(ser):
+    """
+    Closes the serial port connection.
+
+    Parameters:
+        ser (serial.Serial): Serial port object.
+    """
     if ser.is_open:
         ser.close()
-        print("Puerto serial cerrado")
-def recibir_datos(ser, num_bytes=100):
+        print("Serial port closed")
+
+def receive_data(ser, num_bytes=100):
+    """
+    Reads data from the serial port.
+
+    Parameters:
+        ser (serial.Serial): Serial port object.
+        num_bytes (int): Number of bytes to read.
+
+    Returns:
+        bytes: Received data.
+    """
     try:
-        datos = ser.read(num_bytes)
-        if datos:
-            print(f"Datos recibidos: {datos.decode('utf-8')}")
-        else:
-            print("No se recibieron datos")
-        return datos
+        data = ser.read(num_bytes)
+        if data:
+            print(f"Data received: {data.decode('utf-8')}")
+        return data
     except serial.SerialException as e:
-        print(f"Error al recibir datos: {e}")
-
+        print(f"Error receiving data: {e}")
         return None
-if __name__ == "__main__":
-    puerto_serial = "COM3"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
-    baudios = 115200  # Ajusta la velocidad de baudios según la configuración de tu impresora
 
-    serial_port = conectar_puerto_serial(puerto_serial, baudios)
+if __name__ == "__main__":
+    serial_port_name = "COM3"  # Replace with the correct port
+    baud_rate = 115200         # Update according to device configuration
+
+    serial_port = connect_serial_port(serial_port_name, baud_rate)
 
     if serial_port:
-        print("Unlok =")
-        enviar_codigo_g(serial_port, "$H\n")
-        datos = recibir_datos(serial_port, 128)  # Leer 128 bytes de datos
-        print(datos)
-        time.sleep(20)
-        # print("move =")
-        # codigo_g_a_enviar = "G21 G17 G90 G1 X-5.77\n"  # Ejemplo de código G (homes all axes)
-        # enviar_codigo_g(serial_port, codigo_g_a_enviar)
-        # # datos = recibir_datos(serial_port, 128)  # Leer 128 bytes de datos
-        # # print(datos)
-        #
-        # # Esperar un momento para la respuesta de la impresora (ajusta según sea necesario)
-        # time.sleep(10)
+        send_g_code(serial_port, "$H\n")  # Example unlock command
+        received_data = receive_data(serial_port, 128)  # Read 128 bytes
+        print(received_data)
 
-        cerrar_puerto_serial(serial_port)
+        time.sleep(20)
+        close_serial_port(serial_port)
