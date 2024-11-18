@@ -8,7 +8,7 @@ import time
 from database import Database
 
 def main():
-    db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
+    db = Database(dbname='Ossi_AGOUST_XX', user='postgres', password='admin')
     db.create_table()
 
     puerto_serial = "COM3"  # Reemplaza con el puerto serial de tu impresora (puede ser "COMx" en Windows o "/dev/ttyUSBx" en Linux)
@@ -25,7 +25,7 @@ def main():
         # print(f'close -> {Sensor.close()}')
         # time.sleep(2)
 
-    radius=125
+    radius=120
     step= 10
     speed= 450
     sample_time=2
@@ -62,7 +62,7 @@ def main():
         if serial_port:
             codigo_g_a_enviar = f"G21 G17 G90 G1 X{X_code:.2f} Y{Y_code:.2f} Z{Z_code:.2f} F{speed}\n"
             response = enviar_codigo_g(serial_port, codigo_g_a_enviar)
-            print(f'index:{c}/{len(g_code)} Code: {response} X{X_code} Y{Y_code} Z{Z_code}')
+            print(f'index:{c}/{len(g_code)} Code: {response} X{X_code} Y{Y_code} Z{Z_code} Time aprox: {len(g_code)-c *(sample_time+2)}. ')
             # cerrar_puerto_serial(serial_port)
             time.sleep(sample_time + 2)
 

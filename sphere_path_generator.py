@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 pi = math.pi
 
 # Función para generar el código G para una esfera
-def generate_g_code_for_sphere(radius=125, step=10, file_out='sphere_gcode.gcode', speed=450):
+def generate_g_code_for_sphere(radius=120, step=10, file_out='sphere_gcode.gcode', speed=450):
     with open(file_out, 'w') as archivo:
         # Escribir configuraciones iniciales
         # archivo.write("G21\n")  # Establecer unidades en milímetros

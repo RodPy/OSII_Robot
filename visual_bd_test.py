@@ -6,7 +6,7 @@ from database import Database
 
 
 # Conexión a la base de datos PostgreSQL
-db = Database(dbname='OssIJune_GZ', user='postgres', password='admin')
+db = Database(dbname='Ossi_AGOUST_XX', user='postgres', password='admin')
 
 cursor = db.conn.cursor()
 
