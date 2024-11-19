@@ -1,55 +1,73 @@
-import time
+"""
+October 2024
+Version: 2.3
+Author: Rodney Rojas
+Sustainable MRI Lab
 
-import numpy as np
+Description:
+This script generates G-code to create a 3D representation of a sphere using additive manufacturing or CNC tools. 
+It includes functionality to visualize the sphere and simulate the cutting path. Additionally, it calculates the 
+estimated time required to complete the trajectory. The G-code is written to a file, and a graphical representation 
+is provided for validation and analysis.
+"""
+
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-pi = math.pi
+import numpy as np
 
-# Función para generar el código G para una esfera
+
+# Function to generate G-code for a sphere
 def generate_g_code_for_sphere(radius=120, step=10, file_out='sphere_gcode.gcode', speed=450):
+    """
+    Generates G-code for a sphere and saves it to a file.
+
+    Parameters:
+        radius (int): Radius of the sphere in mm.
+        step (int): Step size for layer height in mm.
+        file_out (str): Name of the output G-code file.
+        speed (int): Feed rate for the machine in mm/min.
+
+    Returns:
+        list: A list of points (x, y, z, speed) representing the sphere's trajectory.
+    """
     with open(file_out, 'w') as archivo:
-        # Escribir configuraciones iniciales
-        # archivo.write("G21\n")  # Establecer unidades en milímetros
-        # archivo.write("G17\n")  # Seleccionar plano XY
-        # archivo.write("G90\n")  # Posicionamiento absoluto
-
         g_code = []
-        # Iniciar en el punto más alto de la esfera
-        # g_code.append((0, 0, radius))
 
-        # Generar el código G para cada capa de la esfera
+        # Iterate through each layer of the sphere
         for z in range(-radius, radius + 1, step):
-            # Calcular el radio de la sección circular a esa altura
-            current_radius = round(math.sqrt(radius ** 2 - z ** 2),2)
+            # Calculate the radius of the circular cross-section at this height
+            current_radius = round(math.sqrt(radius ** 2 - z ** 2), 2)
 
-            # Calcular el ángulo de paso, asegurando que no sea cero
-            step_angle = (step / (0.1 + current_radius)) * (180 / pi)
-            step_angle = max(1, int(step_angle))  # Asegurar que el paso mínimo sea 1
+            # Calculate the angular step, ensuring a minimum of 1 degree
+            step_angle = max(1, int((step / (0.1 + current_radius)) * (180 / math.pi)))
 
-            # Generar los puntos de corte en la circunferencia
+            # Generate points along the circumference
             for theta in range(0, 360, step_angle):
                 x = round(current_radius * math.cos(math.radians(theta)), 2)
                 y = round(current_radius * math.sin(math.radians(theta)), 2)
                 g_code.append((x, y, z, speed))
+                archivo.write(f"G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{speed}\n")
 
-                # Escribir comando G-code para mover al siguiente punto
-                archivo.write(f"G21 G17 G90 G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{speed}\n")
-
-        archivo.write("M30\n")  # Fin del programa
-        # print(g_code)
+        archivo.write("M30\n")  # End of program
     return g_code
 
-# Función para graficar una esfera con sus puntos y simulación del código G
+
+# Function to plot the sphere and its generated G-code points
 def plot_sphere_with_g_code(radius, step):
-    # Generar el código G para la esfera
+    """
+    Plots the 3D sphere along with the points generated from the G-code.
+
+    Parameters:
+        radius (int): Radius of the sphere in mm.
+        step (int): Step size for layer height in mm.
+    """
     g_code = generate_g_code_for_sphere(radius, step)
 
-    # Crear la figura y el objeto de los ejes 3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # Graficar la esfera
+    # Plot the surface of the sphere
     u = np.linspace(0, 2 * np.pi, 100)
     v = np.linspace(0, np.pi, 100)
     x = radius * np.outer(np.cos(u), np.sin(v))
@@ -57,59 +75,54 @@ def plot_sphere_with_g_code(radius, step):
     z = radius * np.outer(np.ones(np.size(u)), np.cos(v))
     ax.plot_surface(x, y, z, color='b', alpha=0.5)
 
-    # Graficar puntos de corte generados por el código G
+    # Plot the cutting path points
     for i in range(len(g_code) - 1):
         ax.plot([g_code[i][0], g_code[i + 1][0]],
                 [g_code[i][1], g_code[i + 1][1]],
                 [g_code[i][2], g_code[i + 1][2]], color='y')
 
-    # Configuración de los ejes
     ax.set_xlim([-radius, radius])
     ax.set_ylim([-radius, radius])
     ax.set_zlim([-radius, radius])
-
-    # Etiquetas de los ejes
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    # Mostrar la gráfica
     plt.show()
 
+
+# Function to calculate the estimated total traversal time of the G-code
 def calcular_tiempo_de_recorrido(nombre_archivo):
+    """
+    Calculates the estimated time required to traverse the G-code path.
+
+    Parameters:
+        nombre_archivo (str): Name of the G-code file to process.
+
+    Returns:
+        float: Total traversal time in minutes.
+    """
     tiempo_total = 0
     ultima_x = ultima_y = ultima_z = None
+
     with open(nombre_archivo, 'r') as archivo:
         for linea in archivo:
             if linea.startswith("G1"):
-                valores = linea.split()
-                velocidad = None
-                distancia = None
-                for valor in valores:
-                    if valor.startswith("F"):
-                        velocidad = float(valor[1:])
-                    elif valor.startswith("X"):
-                        x = float(valor[1:])
-                    elif valor.startswith("Y"):
-                        y = float(valor[1:])
-                    elif valor.startswith("Z"):
-                        z = float(valor[1:])
-                if ultima_x is not None and ultima_y is not None and ultima_z is not None:
+                valores = {v[0]: float(v[1:]) for v in linea.split() if v[0] in "XYZF"}
+                x, y, z, f = valores.get('X', ultima_x), valores.get('Y', ultima_y), valores.get('Z',
+                                                                                                 ultima_z), valores.get(
+                    'F', None)
+
+                if ultima_x is not None:
                     distancia = ((x - ultima_x) ** 2 + (y - ultima_y) ** 2 + (z - ultima_z) ** 2) ** 0.5
-                if velocidad and distancia:
-                    tiempo = distancia / velocidad
-                    tiempo_total += tiempo
-                ultima_x = x
-                ultima_y = y
-                ultima_z = z
+                    tiempo_total += distancia / f if f else 0
+
+                ultima_x, ultima_y, ultima_z = x, y, z
+
     return tiempo_total
 
-# Parámetros de la esfera
-# radius = 65
-# step = 1
-#
-# # Llamar a la función para graficar la esfera con la simulación del código G
-# plot_sphere_with_g_code(radius, step)
+
+# Generate G-code and calculate the estimated traversal time
 generate_g_code_for_sphere()
 tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode.gcode")
-print("Tiempo de recorrido total:", tiempo_recorrido, "minutos")
+print(f"Total traversal time: {tiempo_recorrido:.2f} minutes")
