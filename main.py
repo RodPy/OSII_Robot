@@ -1,11 +1,11 @@
 """
 November 2024 - Version 6.1
-Author: Rodney Rojas - Sustainable MRI Lab  
-
-Description:  
-This script communicates with a CNC machine via serial port, reads data from a Gaussmeter sensor,  
-and generates G-code for a sphere path. It inserts data into a PostgreSQL database for tracking.  
-The CNC machine performs movements based on the generated G-code while the sensor data is recorded.  
+Author: Rodney Rojas - Sustainable MRI Lab
+main.py
+Description:
+This script communicates with a CNC machine via serial port, reads data from a Gaussmeter sensor,
+and generates G-code for a sphere path. It inserts data into a PostgreSQL database for tracking.
+The CNC machine performs movements based on the generated G-code while the sensor data is recorded.
 """
 
 from datetime import datetime

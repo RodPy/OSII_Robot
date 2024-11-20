@@ -2,6 +2,8 @@
 November 2024 - Version 4.0
 Author: Rodney Rojas - Sustainable MRI Lab
 
+data_out.py
+
 Description:
 This script facilitates the retrieval and visualization of 3D spatial data from a PostgreSQL database.
 It connects to the database, extracts the required information, and generates a 3D heatmap scatter plot.
