@@ -1,99 +1,99 @@
-Here’s a generated `README.md` file for your project:
+# OSII - ROBOT  
 
+## Overview  
 
-# OSII - ROBOT
+This project focuses on automating the acquisition and visualization of spatial data, primarily for MRI research applications. It combines robust hardware configurations with advanced software tools to enable efficient and precise data collection, visualization, and analysis.  
 
-## Overview
+## Features  
 
-This project aims to [briefly describe the goal of the project, e.g., "design and build an automated system for..."]. It combines hardware and software to achieve [specific functionality, e.g., "3D spatial data visualization for MRI applications"].
+- **Hardware Integration:** Includes CNC components and sensors for spatial measurements.  
+- **Data Management:** Uses PostgreSQL for secure and efficient data handling.  
+- **Visualization:** Generates 3D heatmaps and trajectory simulations using Matplotlib.  
+- **Statistical Analysis:** Provides key metrics (maximum, minimum, mean, ppm) for advanced analysis.  
+- **G-code Automation:** Automates CNC operations with spherical trajectory generation.  
 
-## Features
+## System Components  
 
-- Integration with PostgreSQL for data retrieval.
-- 3D heatmap visualization using Matplotlib.
-- Calculates key statistics (max, min, mean, ppm) for analysis.
-- Hardware setup for precise spatial measurements.
+### Hardware  
 
-## System Components
+| **Component**                          | **Quantity** | **Price (USD)** | **Product Link**                                                                                                                                       |  
+|-----------------------------------------|-------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|  
+| Z Axis-300mm, XY-300mm-12mm Pitch       | 1           | 338.54           | [Link](https://www.aliexpress.us/item/3256805348651313.html?spm=a2g0o.order_detail.order_detail_item.3.5fa4f19cjVbIP4&gatewayAdapt=glo2usa)             |  
+| Stepper Motor Driver TB6600             | 3           | 5.60             | [Link](https://www.aliexpress.us/item/3256805781393725.html?spm=a2g0o.order_detail.order_detail_item.2.1ed6f19cobQnNT&gatewayAdapt=glo2usa)             |  
+| Raspberry Pi 3 Model B+                 | 1           | 30.00            | [Link](https://thepihut.com/products/raspberry-pi-3-model-b-plus)                                                                                      |  
+| Official Raspberry Pi Touchscreen       | 1           | 50.00            | [Link](https://thepihut.com/products/official-raspberry-pi-7-touchscreen-display)                                                                      |  
+| Temperature and Humidity Sensor DHT22   | 1           | 10.00            | [Link](https://thepihut.com/products/dht22-temperature-humidity-sensor)                                                                               |  
+| Creality Ender-5 Plus 3D Printer        | 1           | 579.00           | [Link](https://www.creality.com/es/products/ender-5-plus-3d-printer)                                                                                   |  
+| Arduino UNO R4 Minima                   | 1           | 16.00            | [Link](https://thepihut.com/products/arduino-uno-r4-minima)                                                                                            |  
+| Gaussmeter Model GM2                    | 1           | 902.00           | [Link](https://www.alphalabinc.com/products/gm2/?srsltid=AfmBOor0p2l-VF9fIRODsZqY854WaDDNnBIFsOJ6kHjN2p6iCgCOzTLX)                                      |  
+| **TOTAL**                               |             | **1940.34**      |                                                                                                                                                        |  
 
-### Hardware
+### Software  
 
-| **Component**                           | **Quantity** | **Price (USD)** | **Product Link**                                                                                                                                              |
-|-----------------------------------------|-------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Z Axis-300mm, XY-300mm-12mm Pitch       | 1           | 338.54          | [Link](https://www.aliexpress.us/item/3256805348651313.html?spm=a2g0o.order_detail.order_detail_item.3.5fa4f19cjVbIP4&gatewayAdapt=glo2usa)                    |
-| Stepper Motor Driver TB6600             | 3           | 5.60            | [Link](https://www.aliexpress.us/item/3256805781393725.html?spm=a2g0o.order_detail.order_detail_item.2.1ed6f19cobQnNT&gatewayAdapt=glo2usa)                    |
-| Raspberry Pi 3 Model B+                 | 1           | 30.00           | [Link](https://thepihut.com/products/raspberry-pi-3-model-b-plus)                                                                                              |
-| Official Raspberry Pi Touchscreen       | 1           | 50.00           | [Link](https://thepihut.com/products/official-raspberry-pi-7-touchscreen-display)                                                                              |
-| Temperature and Humidity Sensor DHT22   | 1           | 10.00           | [Link](https://thepihut.com/products/dht22-temperature-humidity-sensor)                                                                                       |
-| Creality Ender-5 Plus 3D Printer        | 1           | 579.00          | [Link](https://www.creality.com/es/products/ender-5-plus-3d-printer)                                                                                           |
-| Arduino UNO R4 Minima                   | 1           | 16.00           | [Link](https://thepihut.com/products/arduino-uno-r4-minima)                                                                                                    |
-| **TOTAL**                               |             | **1040.34**     |                                                                                                                                                               |
+| **Software** | **Description**                               | **Download Link**                        |  
+|--------------|-----------------------------------------------|------------------------------------------|  
+| OpenBuilds   | Platform for design, control, and simulation. | [Link](https://software.openbuilds.com/) |  
 
-### Software
+## Scripts Overview  
 
-| **Software** | **Description**                               | **Download Link**                        |
-|--------------|-----------------------------------------------|------------------------------------------|
-| OpenBuilds   | Platform for design, control, and simulation. | [Link](https://software.openbuilds.com/) |
+### `data_out.py`  
 
-## Scripts
+- Retrieves and visualizes 3D spatial data from PostgreSQL.  
+- Generates heatmaps and calculates statistics (maximum, minimum, mean, ppm).  
 
-### `data_out.py`
+### `database.py`  
 
-This Python script facilitates the retrieval and visualization of 3D spatial data from a PostgreSQL database.
+- Manages interactions with PostgreSQL: table creation, record insertion, data retrieval, and deletion.  
 
-#### Features:
-- Connects to a PostgreSQL database using `psycopg2`.
-- Retrieves spatial data and exports it as a CSV.
-- Generates a 3D heatmap scatter plot using Matplotlib.
-- Computes statistics: max, min, mean, and parts per million (ppm).
+### `main.py`  
 
-#### Requirements:
-- Python libraries: `psycopg2`, `pandas`, `matplotlib`, `numpy`.
+- Used to measure the magnetic field of the OSII MRI.  
+- Interacts with CNC machines via serial communication and logs Gaussmeter sensor data.  
 
-#### Usage:
-1. Configure the database connection:
-    ```python
-    db = Database(dbname='your_database', user='your_username', password='your_password')
-    ```
-2. Run the script to export data and generate visualizations:
-    ```bash
-    python data_out.py
-    ```
+### `serialCNC.py`  
 
-#### Example Output:
-- **CSV File**: `output_[database_name].csv`
-- **3D Heatmap Plot**: Displays a scatter plot with color mapping for `y_probe`.
+- Facilitates serial communication with CNC devices.  
+- Sends G-code commands and processes responses.  
 
-## Installation and Setup
+### `sphere_path_generator.py`  
 
-1. Clone the repository:
-    ```bash
-    git clone [repository_url]
-    ```
-2. Install required Python libraries:
-    ```bash
-    pip install psycopg2 pandas matplotlib numpy
-    ```
-3. Set up the PostgreSQL database with the required schema and data.
+- Generates G-code for spherical trajectories.  
+- Visualizes cutting paths and estimates execution time.  
 
-4. Connect hardware components as per the configuration table above.
+### `visual_db_test.py`  
 
-5. Run the script to retrieve data and visualize it.
+- Provides real-time 3D visualization of coordinates stored in the database.  
 
-## Contribution
+### `GaussmeterReader`  
 
-Contributions are welcome! Follow these steps:
-1. Fork the repository.
-2. Create a new branch for your feature/bug fix.
-3. Commit your changes and open a pull request.
+- Used to measure the magnetic field of the OSII MRI through serial communication with a Gaussmeter sensor.  
 
-## License
+## Installation and Setup  
 
-This project is licensed under the [Your License Name] License. See `LICENSE` for details.
+1. Clone the repository:  
+    ```bash  
+    git clone https://github.com/RodPy/OSII_Robot  
+    ```  
+2. Install dependencies:  
+    ```bash  
+    pip install -r requirements.txt  
+    ```  
+3. Configure and populate your PostgreSQL database.  
+4. Connect the hardware as described in the components section.  
+5. Run the scripts for data collection, visualization, and analysis.  
 
----
+## Contribution  
 
-**Author**: Rodney Rojas  
-**Version**: November 2024 - v0 
-**Sustainable MRI Lab**
-```
+Contributions are welcome! Follow these steps:  
+1. Fork the repository.  
+2. Create a branch for your feature or bug fix.  
+3. Commit your changes and open a pull request.  
+
+## License  
+
+This project is licensed under the [MIT License](LICENSE). See the `LICENSE` file for more details.  
+
+---  
+
+**Version**: November 2024 - v6.1  
+**Sustainable MRI Lab**  

@@ -1,6 +1,7 @@
 """
 August 2024 - Version 1.5
 Author: Rodney Rojas - Sustainable MRI Lab
+serialCNC.py
 
 Description:
 This script facilitates communication with a device via a serial port.

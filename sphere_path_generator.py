@@ -4,10 +4,11 @@ Version: 2.3
 Author: Rodney Rojas
 Sustainable MRI Lab
 
+sphere_path_generator.py
 Description:
-This script generates G-code to create a 3D representation of a sphere using additive manufacturing or CNC tools. 
-It includes functionality to visualize the sphere and simulate the cutting path. Additionally, it calculates the 
-estimated time required to complete the trajectory. The G-code is written to a file, and a graphical representation 
+This script generates G-code to create a 3D representation of a sphere using additive manufacturing or CNC tools.
+It includes functionality to visualize the sphere and simulate the cutting path. Additionally, it calculates the
+estimated time required to complete the trajectory. The G-code is written to a file, and a graphical representation
 is provided for validation and analysis.
 """
 
@@ -89,40 +90,3 @@ def plot_sphere_with_g_code(radius, step):
     ax.set_zlabel('Z')
 
     plt.show()
-
-
-# Function to calculate the estimated total traversal time of the G-code
-def calcular_tiempo_de_recorrido(nombre_archivo):
-    """
-    Calculates the estimated time required to traverse the G-code path.
-
-    Parameters:
-        nombre_archivo (str): Name of the G-code file to process.
-
-    Returns:
-        float: Total traversal time in minutes.
-    """
-    tiempo_total = 0
-    ultima_x = ultima_y = ultima_z = None
-
-    with open(nombre_archivo, 'r') as archivo:
-        for linea in archivo:
-            if linea.startswith("G1"):
-                valores = {v[0]: float(v[1:]) for v in linea.split() if v[0] in "XYZF"}
-                x, y, z, f = valores.get('X', ultima_x), valores.get('Y', ultima_y), valores.get('Z',
-                                                                                                 ultima_z), valores.get(
-                    'F', None)
-
-                if ultima_x is not None:
-                    distancia = ((x - ultima_x) ** 2 + (y - ultima_y) ** 2 + (z - ultima_z) ** 2) ** 0.5
-                    tiempo_total += distancia / f if f else 0
-
-                ultima_x, ultima_y, ultima_z = x, y, z
-
-    return tiempo_total
-
-
-# Generate G-code and calculate the estimated traversal time
-generate_g_code_for_sphere()
-tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode.gcode")
-print(f"Total traversal time: {tiempo_recorrido:.2f} minutes")
