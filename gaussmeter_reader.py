@@ -1,5 +1,5 @@
 # GaussmeterReader Class
-# Adapted by Rodney Rojas from Tom's work
+# Adapted by Rodney Rojas from Asiimwe Robert. work
 # Purpose: This class handles the communication with a magnetometer via a serial connection.
 # It provides functionality to open the serial port, read magnetic field strength values, 
 # and close the connection to the magnetometer.
