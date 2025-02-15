@@ -1,1 +1,3 @@
 myenv/pyvenv.cfg
+myenv/
+__pycache__ 
