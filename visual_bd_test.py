@@ -4,9 +4,11 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 from database import Database
 
-def plot():
-    # Conexión a la base de datos PostgreSQL
-    db = Database(dbname='OssiAGOSTO_YY_SHIM', user='postgres', password='admin')
+bd = 'Ossi_04_11_2024_Y_FULL_SHIM_D22_CENTER'
+
+def plot(bd):
+    # Conexión a la base de datos PostgreSQLOssi_28_08_24_Y_NO_SHIM_D23_CENTER
+    db = Database(dbname=bd, user='postgres', password='admin')
 
     cursor = db.conn.cursor()
 
@@ -62,4 +64,5 @@ def plot():
     db.close()
 
 
-plot()
+# plot()
+plot(bd)

@@ -45,6 +45,8 @@ class Database:
             CREATE TABLE IF NOT EXISTS data (
                 id SERIAL PRIMARY KEY,
                 date DATE,
+                temperature_c FLOAT,
+                humidity FLOAT,
                 coordinate_x FLOAT,
                 coordinate_y FLOAT,
                 coordinate_z FLOAT,
@@ -58,14 +60,14 @@ class Database:
         self.cur.execute(create_table_query)
         self.conn.commit()
 
-    def insert_data(self, date, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time,
+    def insert_data(self, date, temperature_c,humidity, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time,
                     sample_distance):
         insert_query = '''
-            INSERT INTO data (date, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO data (date, temperature_c,humidity, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance)
+            VALUES (%s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s)
         '''
         self.cur.execute(insert_query, (
-            date, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance))
+            date, temperature_c,humidity, coordinate_x, coordinate_y, coordinate_z, x_probe, y_probe, z_probe, sample_time, sample_distance))
         self.conn.commit()
 
     def select_all_data(self):

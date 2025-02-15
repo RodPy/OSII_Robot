@@ -12,19 +12,18 @@ class Database:
     def close(self):
         if self.conn:
             self.conn.close()
-
 # Conexión a la base de datos PostgreSQL
-db = Database(dbname='OssiAGOSTO_YY_SHIM', user='postgres', password='admin')
+db = Database(dbname='Ossi_24_11_2024_Y_FULL_SHIM_D25_CENTER', user='postgres', password='admin')
 
 try:
     cursor = db.conn.cursor()
 
     # Paso 2: Extraer los datos
-    query = "SELECT coordinate_x, coordinate_y, coordinate_z, y_probe FROM data"
+    query = "SELECT date ,temperature_c, humidity, coordinate_x, coordinate_y, coordinate_z, y_probe FROM data"
     df = pd.read_sql_query(query, db.conn)
 
     # Exportar a CSV
-    df.to_csv('output_data.csv', index=False)  # Exporta el DataFrame a un archivo CSV
+    df.to_csv('Ossi_24_11_2024_Y_FULL_SHIM_D25_CENTER.csv', index=False)  # Exporta el DataFrame a un archivo CSV
 
 finally:
     # Cerrar el cursor y la conexión

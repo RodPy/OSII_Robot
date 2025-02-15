@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 pi = math.pi
 
 # Función para generar el código G para una esfera
-def generate_g_code_for_sphere(radius=100, step=10, file_out='sphere_gcode.gcode', speed=450):
+def generate_g_code_for_sphere(radius=125, step=10, file_out='sphere_gcode_Y.gcode', speed=475):
     with open(file_out, 'w') as archivo:
         # Escribir configuraciones iniciales
         # archivo.write("G21\n")  # Establecer unidades en milímetros
@@ -21,6 +21,7 @@ def generate_g_code_for_sphere(radius=100, step=10, file_out='sphere_gcode.gcode
         # Generar el código G para cada capa de la esfera
         for z in range(-radius, radius + 1, step):
             # Calcular el radio de la sección circular a esa altura
+            
             current_radius = round(math.sqrt(radius ** 2 - z ** 2),2)
 
             # Calcular el ángulo de paso, asegurando que no sea cero
@@ -35,6 +36,9 @@ def generate_g_code_for_sphere(radius=100, step=10, file_out='sphere_gcode.gcode
 
                 # Escribir comando G-code para mover al siguiente punto
                 archivo.write(f"G21 G17 G90 G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{speed}\n")
+
+            # archivo.write(f"G21 G17 G90 G1 X0 Y0 Z0 F{speed}\n")
+            #g_code.append((0, 0, 0, speed))
 
         archivo.write("M30\n")  # Fin del programa
         # print(g_code)
@@ -118,5 +122,5 @@ def calcular_tiempo_de_recorrido(archivo_gcode):
 # # Llamar a la función para graficar la esfera con la simulación del código G
 # plot_sphere_with_g_code(radius, step)
 generate_g_code_for_sphere()
-tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode.gcode")
+tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode_Y.gcode")
 print("Tiempo de recorrido total:", tiempo_recorrido, "minutos")
