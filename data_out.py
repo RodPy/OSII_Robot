@@ -1,115 +1,106 @@
 """
-November 2024 - Version 4.0
+November 2024 - Version 5.0 (optimized)
 Author: Rodney Rojas - Sustainable MRI Lab
 
 data_out.py
-
-Description:
-This script facilitates the retrieval and visualization of 3D spatial data from a PostgreSQL database.
-It connects to the database, extracts the required information, and generates a 3D heatmap scatter plot.
-Additionally, it calculates statistics such as max, min, mean, and parts per million (ppm).
-Designed for use in MRI research and similar applications.
-
-Requirements:
-- psycopg2: For PostgreSQL connection
-- pandas: For data manipulation
-- matplotlib: For data visualization
-- numpy: For numerical operations
-
-Make sure the database contains the required schema and the table 'data' with the necessary columns.
+Exporta datos 3D desde PostgreSQL a CSV y genera un heatmap 3D (scatter) con estadísticas
+(max, min, media, ppm). Ejecutar como script: python data_out.py
 """
+import sys
 
-import psycopg2
-import pandas as pd
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import pandas as pd
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+
+from config import (
+    DB_USER,
+    DB_PASSWORD,
+    DB_HOST,
+    DB_PORT,
+    EXPORT_DB_NAME,
+)
+from database import Database
+
+PPM_CENTER_REF = 436
 
 
-class Database:
-    """
-    Handles connection and interaction with a PostgreSQL database.
-    """
-    def __init__(self, dbname, user, password, host='localhost', port='5432'):
-        """
-        Initializes the database connection.
-        :param dbname: Name of the database.
-        :param user: Database username.
-        :param password: Database password.
-        :param host: Host address, defaults to 'localhost'.
-        :param port: Port number, defaults to '5432'.
-        """
-        try:
-            self.conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
-        except psycopg2.Error as e:
-            print(f"Error connecting to database: {e}")
-            self.conn = None
-
-    def close(self):
-        """
-        Closes the database connection.
-        """
-        if self.conn:
-            self.conn.close()
-
-dbname='Ossi_04_11_2024_Y_FULL_SHIM_D22_CENTER'
-# Step 1: Connect to PostgreSQL database
-db = Database(dbname=dbname, user='postgres', password='admin')
-
-try:
-    # Create a cursor for executing queries
-    cursor = db.conn.cursor()
-
-    # Step 2: Retrieve data from the database
+def load_data(db: Database) -> pd.DataFrame:
+    """Carga coordenadas y sonda desde la tabla 'data'."""
     query = """
-    SELECT date, temperature_c, humidity, coordinate_x, coordinate_y, coordinate_z, y_probe
-    FROM data
+        SELECT date, coordinate_x, coordinate_y, coordinate_z,
+               y_probe, sample_time, sample_distance
+        FROM data
     """
-    df = pd.read_sql_query(query, db.conn)
+    return pd.read_sql_query(query, db.conn)
 
-    # Export data to CSV for external analysis or backup
-    output_file = dbname
-    df.to_csv(output_file, index=False)
-    print(f"Data exported to output_{output_file}.csv")
 
-finally:
-    # Ensure resources are closed
-    if cursor:
-        cursor.close()
-    db.close()
+def export_csv(df: pd.DataFrame, base_name: str) -> str:
+    """Guarda el DataFrame en CSV y devuelve la ruta del archivo."""
+    path = f"{base_name}.csv"
+    df.to_csv(path, index=False)
+    return path
 
-# Step 3: Generate 3D heatmap
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
 
-# Convert data to numpy arrays for plotting
-x = df['coordinate_x'].to_numpy()
-y = df['coordinate_y'].to_numpy()
-z = df['coordinate_z'].to_numpy()
-c = df['y_probe'].to_numpy()
+def plot_heatmap_3d(df: pd.DataFrame) -> None:
+    """Genera scatter 3D con color por y_probe y muestra estadísticas."""
+    if df.empty or "y_probe" not in df.columns:
+        print("No hay datos para graficar.")
+        return
 
-# Create the scatter plot
-scatter = ax.scatter(x, y, z, c=c, cmap='hot')
+    x = df["coordinate_x"].to_numpy()
+    y = df["coordinate_y"].to_numpy()
+    z = df["coordinate_z"].to_numpy()
+    c = df["y_probe"].to_numpy()
 
-# Add a color bar for the y_probe values
-cbar = fig.colorbar(scatter)
-cbar.set_label('Y Probe')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    scatter = ax.scatter(x, y, z, c=c, cmap="hot")
+    fig.colorbar(scatter, label="Y Probe")
+    ax.set_xlabel("X Coordinate")
+    ax.set_ylabel("Y Coordinate")
+    ax.set_zlabel("Z Coordinate")
+    ax.set_title("3D Heatmap of Y_PROBE")
+    plt.show()
 
-# Add labels and title
-ax.set_xlabel('X Coordinate')
-ax.set_ylabel('Y Coordinate')
-ax.set_zlabel('Z Coordinate')
-ax.set_title('3D Heatmap of Y_PROBE')
 
-# Calculate statistics
-max_val = df['y_probe'].max()
-min_val = df['y_probe'].min()
-mean_val = df['y_probe'].mean()
-center = 436
-ppm = ((max_val - min_val) / mean_val) * 1_000_000
+def print_stats(df: pd.DataFrame) -> None:
+    """Imprime max, min, media y PPM de y_probe."""
+    if df.empty or "y_probe" not in df.columns:
+        return
+    max_val = df["y_probe"].max()
+    min_val = df["y_probe"].min()
+    mean_val = df["y_probe"].mean()
+    if mean_val != 0:
+        ppm = ((max_val - min_val) / mean_val) * 1_000_000
+    else:
+        ppm = float("nan")
+    print(
+        f"Max: {max_val:.2f} - Min: {min_val:.2f} - Mean: {mean_val:.2f} "
+        f"- Center: {PPM_CENTER_REF} - PPM: {ppm:.2f}"
+    )
 
-# Print statistics
-print(f"Max: {max_val:.2f} - Min: {min_val:.2f} - Mean: {mean_val:.2f} - Center: {center} - PPM: {ppm:.2f}")
 
-# Display the plot
-plt.show()
+def main() -> None:
+    db = Database(
+        dbname=EXPORT_DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT,
+    )
+    try:
+        df = load_data(db)
+        path = export_csv(df, EXPORT_DB_NAME)
+        print(f"Data exported to {path}")
+        print_stats(df)
+        plot_heatmap_3d(df)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()

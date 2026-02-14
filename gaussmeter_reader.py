@@ -1,83 +1,87 @@
-# GaussmeterReader Class
-# Adapted by Rodney Rojas from Asiimwe Robert. work
-# Purpose: This class handles the communication with a magnetometer via a serial connection.
-# It provides functionality to open the serial port, read magnetic field strength values, 
-# and close the connection to the magnetometer.
-# Version: August 2024
-
+"""
+GaussmeterReader - Comunicación con magnetómetro por puerto serie.
+Adaptado por Rodney Rojas desde trabajo de Asiimwe Robert. Version: August 2024 (optimized).
+"""
 import numbers
 import serial
 from serial.serialutil import PortNotOpenError
+from typing import Union
+
+# Comando hex para solicitar dato (constante evita recrear bytearray en cada lectura)
+DATA_COMMAND_HEX = "030000000000"
+DATA_RESPONSE_LENGTH = 13
+DATA_BYTES_SLICE = slice(6, 12)  # bytes 6..11 para valor y exponente
+
 
 class GaussmeterReader:
     """
-    GaussmeterReader class for reading data from a magnetometer connected via serial port.
-    This class handles opening the serial port, reading magnetic field strength values,
-    and closing the connection.
+    Lee intensidad de campo magnético (Gauss) desde magnetómetro por puerto serie.
     """
 
-    def __init__(self, magnetometer_port='COM4'):
-        """
-        Initializes the GaussmeterReader and opens the serial connection.
-
-        :param magnetometer_port: The serial port to which the magnetometer is connected.
-        """
+    def __init__(
+        self,
+        magnetometer_port: str = "COM4",
+        baudrate: int = 115200,
+        timeout: float = 2.0,
+    ) -> None:
+        if hasattr(self, "magnetometer") and self.magnetometer.is_open:
+            return
         try:
-            # If the magnetometer connection is already open, skip reopening it
-            if hasattr(self, 'magnetometer') and self.magnetometer.is_open:
-                print("Port is already open. Skipping connection.")
-                return
-
-            # Open the serial connection for the magnetometer
             self.magnetometer = serial.Serial(
                 port=magnetometer_port,
-                baudrate=115200,
+                baudrate=baudrate,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
                 bytesize=serial.EIGHTBITS,
-                timeout=2
+                timeout=timeout,
             )
         except PortNotOpenError:
             raise PortNotOpenError("Attempting to use a port that is not open")
+        except serial.SerialException as e:
+            raise serial.SerialException(
+                f"Could not open magnetometer port {magnetometer_port}: {e}"
+            ) from e
 
-    def read_value(self):
+    def read_value(self) -> Union[float, str]:
         """
-        Sends a data command to the magnetometer and reads the response.
-
-        :return: The magnetic field strength in Gauss or an empty string if the response is invalid.
+        Envía comando de dato y lee respuesta.
+        :return: Intensidad en Gauss o '' si la respuesta no es válida.
         """
-        dataCommand = '030000000000'
-        self.magnetometer.write(bytearray.fromhex(dataCommand))
-        outputData = self.magnetometer.read(13)
+        self.magnetometer.write(bytearray.fromhex(DATA_COMMAND_HEX))
+        output_data = self.magnetometer.read(DATA_RESPONSE_LENGTH)
 
-        if len(outputData) == 13:
-            # Extract and process the data from the response
-            dataBytes = outputData[6:-1]
-            rawDataByte = (dataBytes[2] << 24) | (dataBytes[3] << 16) | (dataBytes[4] << 8) | dataBytes[5]
-            processingByte = dataBytes[1]
-            exponent = processingByte & 7
-            sign = float(1 - 2 * ((processingByte & 8) >> 3))
+        if len(output_data) != DATA_RESPONSE_LENGTH:
+            return ""
 
-            # Calculate the magnetic field strength
-            fieldStrength = sign * rawDataByte / 10 ** exponent
-            return fieldStrength
-        return ''  # Return empty string if data is not valid
+        data_bytes = output_data[DATA_BYTES_SLICE]
+        raw = (
+            (data_bytes[2] << 24)
+            | (data_bytes[3] << 16)
+            | (data_bytes[4] << 8)
+            | data_bytes[5]
+        )
+        processing_byte = data_bytes[1]
+        exponent = processing_byte & 7
+        sign = float(1 - 2 * ((processing_byte & 8) >> 3))
+        return sign * raw / (10 ** exponent)
 
-    def read_gaussmeter(self):
+    def read_gaussmeter(self, max_retries: int = 100) -> float:
         """
-        Continuously reads the Gaussmeter value until a valid number is returned.
+        Lee hasta obtener un valor numérico válido.
+        :param max_retries: Límite de intentos para evitar bucle infinito.
+        :return: Intensidad en Gauss.
+        :raises RuntimeError: Si no se obtiene valor válido tras max_retries.
+        """
+        for _ in range(max_retries):
+            val = self.read_value()
+            if isinstance(val, numbers.Number):
+                return float(val)
+        raise RuntimeError(
+            f"Gaussmeter did not return valid value after {max_retries} attempts"
+        )
 
-        :return: The magnetic field strength in Gauss.
-        """
-        probeVal = self.read_value()
-        while not isinstance(probeVal, numbers.Number):  # Ensure a valid numeric value
-            probeVal = self.read_value()
-        return probeVal
-
-    def close(self):
-        """
-        Closes the serial connection to the magnetometer.
-        """
-        if self.magnetometer.is_open:
+    def close(self) -> None:
+        """Cierra el puerto serie del magnetómetro."""
+        if getattr(self, "magnetometer", None) and self.magnetometer.is_open:
             self.magnetometer.close()
             print("Magnetometer connection closed.")

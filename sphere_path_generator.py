@@ -1,92 +1,96 @@
 """
-October 2024
-Version: 2.3
-Author: Rodney Rojas
-Sustainable MRI Lab
+October 2024 - Version 3.0 (optimized)
+Author: Rodney Rojas - Sustainable MRI Lab
 
 sphere_path_generator.py
-Description:
-This script generates G-code to create a 3D representation of a sphere using additive manufacturing or CNC tools.
-It includes functionality to visualize the sphere and simulate the cutting path. Additionally, it calculates the
-estimated time required to complete the trajectory. The G-code is written to a file, and a graphical representation
-is provided for validation and analysis.
+Genera G-code para una trayectoria esférica 3D (CNC/additive). Incluye opción de
+visualización y guardado en archivo.
 """
-
 import math
+from typing import List, Optional, Tuple
+
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - needed for projection='3d'
+
+# Constantes precalculadas
+DEG_PER_RAD = 180.0 / math.pi
 
 
-# Function to generate G-code for a sphere
-def generate_g_code_for_sphere(radius=120, step=10, file_out='sphere_gcode.gcode', speed=450):
+def generate_g_code_for_sphere(
+    radius: int = 120,
+    step: int = 10,
+    file_out: Optional[str] = "sphere_gcode.gcode",
+    speed: int = 450,
+) -> List[Tuple[float, float, float, int]]:
     """
-    Generates G-code for a sphere and saves it to a file.
+    Genera lista de puntos (x, y, z, speed) para una esfera y opcionalmente escribe G-code.
 
-    Parameters:
-        radius (int): Radius of the sphere in mm.
-        step (int): Step size for layer height in mm.
-        file_out (str): Name of the output G-code file.
-        speed (int): Feed rate for the machine in mm/min.
-
-    Returns:
-        list: A list of points (x, y, z, speed) representing the sphere's trajectory.
+    :param radius: Radio en mm.
+    :param step: Paso en altura (mm) entre capas.
+    :param file_out: Ruta del archivo G-code; None para no escribir.
+    :param speed: Avance en mm/min.
+    :return: Lista de (x, y, z, speed).
     """
-    with open(file_out, 'w') as archivo:
-        g_code = []
+    g_code: List[Tuple[float, float, float, int]] = []
+    z_values = range(-radius, radius + 1, step)
 
-        # Iterate through each layer of the sphere
-        for z in range(-radius, radius + 1, step):
-            # Calculate the radius of the circular cross-section at this height
-            current_radius = round(math.sqrt(radius ** 2 - z ** 2), 2)
+    for z in z_values:
+        r_sq = radius ** 2 - z ** 2
+        if r_sq < 0:
+            continue
+        current_radius = round(math.sqrt(r_sq), 2)
+        if current_radius <= 0:
+            g_code.append((0.0, 0.0, float(z), speed))
+            continue
 
-            # Calculate the angular step, ensuring a minimum of 1 degree
-            step_angle = max(1, int((step / (0.1 + current_radius)) * (180 / math.pi)))
+        step_angle = max(1, int((step / (0.1 + current_radius)) * DEG_PER_RAD))
+        thetas = range(0, 360, step_angle)
+        for theta in thetas:
+            rad = math.radians(theta)
+            x = round(current_radius * math.cos(rad), 2)
+            y = round(current_radius * math.sin(rad), 2)
+            g_code.append((x, y, float(z), speed))
 
-            # Generate points along the circumference
-            for theta in range(0, 360, step_angle):
-                x = round(current_radius * math.cos(math.radians(theta)), 2)
-                y = round(current_radius * math.sin(math.radians(theta)), 2)
-                g_code.append((x, y, z, speed))
-                archivo.write(f"G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{speed}\n")
-
-        archivo.write("M30\n")  # End of program
+    if file_out:
+        _write_gcode_file(file_out, g_code, speed)
     return g_code
 
 
-# Function to plot the sphere and its generated G-code points
-def plot_sphere_with_g_code(radius, step):
-    """
-    Plots the 3D sphere along with the points generated from the G-code.
+def _write_gcode_file(
+    path: str,
+    points: List[Tuple[float, float, float, int]],
+    speed: int,
+) -> None:
+    """Escribe los puntos en un archivo G-code."""
+    with open(path, "w") as f:
+        for x, y, z, sp in points:
+            f.write(f"G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{sp}\n")
+        f.write("M30\n")
 
-    Parameters:
-        radius (int): Radius of the sphere in mm.
-        step (int): Step size for layer height in mm.
-    """
-    g_code = generate_g_code_for_sphere(radius, step)
+
+def plot_sphere_with_g_code(radius: int, step: int) -> None:
+    """Dibuja la esfera y la trayectoria generada por el G-code."""
+    g_code = generate_g_code_for_sphere(radius, step, file_out=None)
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
-    # Plot the surface of the sphere
     u = np.linspace(0, 2 * np.pi, 100)
     v = np.linspace(0, np.pi, 100)
-    x = radius * np.outer(np.cos(u), np.sin(v))
-    y = radius * np.outer(np.sin(u), np.sin(v))
-    z = radius * np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, color='b', alpha=0.5)
+    x_s = radius * np.outer(np.cos(u), np.sin(v))
+    y_s = radius * np.outer(np.sin(u), np.sin(v))
+    z_s = radius * np.outer(np.ones(np.size(u)), np.cos(v))
+    ax.plot_surface(x_s, y_s, z_s, color="b", alpha=0.5)
 
-    # Plot the cutting path points
-    for i in range(len(g_code) - 1):
-        ax.plot([g_code[i][0], g_code[i + 1][0]],
-                [g_code[i][1], g_code[i + 1][1]],
-                [g_code[i][2], g_code[i + 1][2]], color='y')
+    pts = np.array(g_code)
+    if len(pts) >= 2:
+        ax.plot(pts[:, 0], pts[:, 1], pts[:, 2], color="y", linewidth=0.5)
 
     ax.set_xlim([-radius, radius])
     ax.set_ylim([-radius, radius])
     ax.set_zlim([-radius, radius])
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
     plt.show()
