@@ -1,5 +1,15 @@
+"""
+serialCNC.py
+Conexión serial con CNC: conectar, enviar código G, cerrar puerto.
+Serial connection with CNC: connect, send G-code, close port.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import serial
 import time
+
 
 def conectar_puerto_serial(puerto, baudios):
     try:
@@ -10,8 +20,6 @@ def conectar_puerto_serial(puerto, baudios):
         print(f"Error al conectar al puerto serial: {e}")
         return None
 
-import serial
-import time
 
 def enviar_codigo_g2(ser, codigo_g, timeout=15):
     try:

@@ -1,12 +1,22 @@
+"""
+visual_bd_test.py
+Gráfico 3D en tiempo real de coordenadas almacenadas en base de datos PostgreSQL.
+Real-time 3D plot of coordinates stored in PostgreSQL database.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import psycopg2
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import time
 from database import Database
 
-bd = 'Ossi_04_11_2024_Y_FULL_SHIM_D22_CENTER'
+bd_default = 'Ossi_04_11_2024_Y_FULL_SHIM_D22_CENTER'
 
-def plot(bd):
+def plot(db_name=None):
+    bd = db_name or bd_default
     # Conexión a la base de datos PostgreSQLOssi_28_08_24_Y_NO_SHIM_D23_CENTER
     db = Database(dbname=bd, user='postgres', password='admin')
 
@@ -64,5 +74,5 @@ def plot(bd):
     db.close()
 
 
-# plot()
-plot(bd)
+if __name__ == "__main__":
+    plot(bd_default)

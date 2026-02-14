@@ -1,3 +1,12 @@
+"""
+view.py
+Interfaz gráfica control Robot CNC: puertos seriales, configuración de movimiento, gráficos.
+Robot CNC control GUI: serial ports, movement configuration, plots.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import tkinter as tk
 from tkinter import ttk
 import serial.tools.list_ports

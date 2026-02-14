@@ -1,3 +1,12 @@
+"""
+main.py
+Aplicación principal: control CNC, gaussmeter, sensor DHT, generación de trayectoria esférica y registro en base de datos.
+Main application: CNC control, gaussmeter, DHT sensor, spherical path generation and database logging.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 from datetime import datetime
 
 from gaussmeter_reader import GaussmeterReader
@@ -47,7 +56,7 @@ def main():
 
     g_code=[]
 
-    g_code = generate_g_code_for_sphere()
+    g_code = generate_g_code_for_sphere(radius=radius, step=step, speed=speed)
     c=0
     codigo_g_a_enviar = "$X\n"
     enviar_codigo_g(serial_port, codigo_g_a_enviar)
@@ -164,6 +173,8 @@ def main():
     codigo_g_a_enviar = f"G21 G17 G90 G1 X0.00 Y0.00 Z0.00 F400\n"
     print(f'FIN -> {codigo_g_a_enviar}')
     print(enviar_codigo_g(serial_port, codigo_g_a_enviar))
+    if serial_port:
+        cerrar_puerto_serial(serial_port)
     db.close()
 
 if __name__ == "__main__":

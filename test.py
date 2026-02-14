@@ -1,5 +1,12 @@
-# main.py
-
+"""
+test.py
+Prueba básica del sensor DHT22 (temperatura y humedad).
+Basic DHT22 sensor test (temperature and humidity).
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 from dht_sensor import DHTSensor
 import time
 

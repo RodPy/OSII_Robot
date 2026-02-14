@@ -1,3 +1,12 @@
+"""
+robot_gui.py
+Interfaz gráfica simulador: conexión serial, simulación, controles de movimiento y origen.
+Simulator GUI: serial connection, simulation, movement and origin controls.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext

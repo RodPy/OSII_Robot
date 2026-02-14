@@ -1,3 +1,12 @@
+"""
+database.py
+Módulo de conexión y operaciones con PostgreSQL (crear BD, tabla, insertar y consultar datos).
+PostgreSQL connection and operations module (create DB, table, insert and query data).
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import psycopg2
 from psycopg2 import sql
 

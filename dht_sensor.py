@@ -1,5 +1,12 @@
-# dht_sensor.py
-
+"""
+dht_sensor.py
+Lectura del sensor DHT22 para temperatura y humedad (Raspberry Pi).
+DHT22 sensor reading for temperature and humidity (Raspberry Pi).
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 import time
 import board
 import adafruit_dht

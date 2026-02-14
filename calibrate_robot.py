@@ -1,3 +1,12 @@
+"""
+calibrate_robot.py
+Modo calibración: ejecuta trayectoria en eje Y para calibración del robot CNC.
+Calibration mode: runs Y-axis trajectory for CNC robot calibration.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
 from datetime import datetime
 
 from serialCNC import conectar_puerto_serial,enviar_codigo_g,cerrar_puerto_serial
@@ -60,7 +69,8 @@ def main():
     codigo_g_a_enviar = f"G21 G17 G90 G1 X0.00 Y0.00 Z0.00 F400\n"
     print(f'FIN -> {codigo_g_a_enviar}')
     print(enviar_codigo_g(serial_port, codigo_g_a_enviar))
-    db.close()
+    if serial_port:
+        cerrar_puerto_serial(serial_port)
 
 if __name__ == "__main__":
     main()

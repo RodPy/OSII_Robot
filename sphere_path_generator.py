@@ -1,3 +1,13 @@
+"""
+sphere_path_generator.py
+Generación de código G para trayectoria esférica de escaneo y graficación.
+G-code generation for spherical scanning path and plotting.
+Author: Rodney Rojas
+Sustainable MRI Lab
+February 2026
+Version: 1.0
+"""
+import re
 import time
 
 import numpy as np
@@ -161,6 +171,7 @@ def calcular_tiempo_de_recorrido(archivo_gcode):
 #
 # # Llamar a la función para graficar la esfera con la simulación del código G
 # plot_sphere_with_g_code(radius, step)
-generate_g_code_for_sphere()
-tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode_Y.gcode")
-print("Tiempo de recorrido total:", tiempo_recorrido, "minutos")
+if __name__ == "__main__":
+    generate_g_code_for_sphere()
+    tiempo_recorrido = calcular_tiempo_de_recorrido("sphere_gcode_Y.gcode")
+    print("Tiempo de recorrido total:", tiempo_recorrido, "minutos")
