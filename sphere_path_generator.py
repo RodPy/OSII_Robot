@@ -44,6 +44,46 @@ def generate_g_code_for_sphere(radius=125, step=10, file_out='sphere_gcode_Y.gco
         # print(g_code)
     return g_code
 
+def Calibrate_generate_g_code_for_sphere(radius=40, step=10, file_out='sphere_gcode_Y.gcode', speed=500):
+    with open(file_out, 'w') as archivo:
+        # Escribir configuraciones iniciales
+        # archivo.write("G21\n")  # Establecer unidades en milímetros
+        # archivo.write("G17\n")  # Seleccionar plano XY
+        # archivo.write("G90\n")  # Posicionamiento absoluto
+
+        g_code = []
+        # Iniciar en el punto más alto de la esfera
+        # g_code.append((0, 0, radius))
+
+        # Generar el código G para cada capa de la esfera
+        for z in range(-radius, radius + 1, step):
+            # Calcular el radio de la sección circular a esa altura
+            
+            current_radius = round(math.sqrt(radius ** 2 - z ** 2),2)
+
+            # Calcular el ángulo de paso, asegurando que no sea cero
+            step_angle = (step / (0.1 + current_radius)) * (180 / pi)
+            step_angle = max(1, int(step_angle))  # Asegurar que el paso mínimo sea 1
+
+            # Generar los puntos de corte en la circunferencia
+            for theta in range(0, 360, step_angle):
+                x = 0
+                y = round(current_radius * math.sin(math.radians(theta)), 2)
+                g_code.append((x, y, z, speed))
+
+                # Escribir comando G-code para mover al siguiente punto
+                archivo.write(f"G21 G17 G90 G1 X{x:.2f} Y{y:.2f} Z{z:.2f} F{speed}\n")
+                archivo.write(f"G21 G17 G90 G1  X-10 F{speed}\n")
+
+
+
+            # archivo.write(f"G21 G17 G90 G1 X0 Y0 Z0 F{speed}\n")
+            #g_code.append((0, 0, 0, speed))
+
+        archivo.write("M30\n")  # Fin del programa
+        # print(g_code)
+    return g_code
+
 # Función para graficar una esfera con sus puntos y simulación del código G
 def plot_sphere_with_g_code(radius, step):
     # Generar el código G para la esfera
