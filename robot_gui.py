@@ -7,168 +7,322 @@ Sustainable MRI Lab
 February 2026
 Version: 1.0
 """
+import sys
+import threading
 import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
+from tkinter import messagebox
+import serial
 import serial.tools.list_ports
 import main
 import visual_bd_test
 
 class SimuladorApp:
+    """Interfaz de simulación y control del robot OSII."""
+
+    STEP_MM = 10  # Paso de movimiento en mm
+    FEED_RATE = 400
+
     def __init__(self, root):
         self.root = root
-        self.root.title("Simulador")
-        self.serial = None  # Inicializa el atributo de conexión serial
+        self.root.title("OSII Robot - Simulador")
+        self.root.minsize(700, 550)
+        self.root.geometry("800x600")
+        self.serial = None  # Conexión CNC
+        self.gaussmeter = None  # Conexión Gaussmeter
+        self._running_thread = None
+        self._stop_flag = threading.Event()
 
-        # Variables
-        self.port_var = tk.StringVar()
-        self.baud_var = tk.StringVar(value="9600")
+        self._setup_styles()
+        self._create_variables()
+        self._create_ui()
+        self._configure_grid()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
-        # Sección de conexión
-        self.frame_conexion = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_conexion.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+    def _setup_styles(self):
+        """Configura estilos ttk."""
+        style = ttk.Style()
+        style.configure("TFrame", padding=5)
+        style.configure("Header.TLabel", font=("", 10, "bold"))
 
-        tk.Label(self.frame_conexion, text="Selector de puerto").grid(row=0, column=0, padx=5, pady=5)
-        self.port_combobox = ttk.Combobox(self.frame_conexion, textvariable=self.port_var, values=self.listar_puertos())
-        self.port_combobox.grid(row=0, column=1, padx=10, pady=10)
+    def _create_variables(self):
+        """Crea variables de control."""
+        self.port_cnc_var = tk.StringVar()
+        self.port_gaussmeter_var = tk.StringVar()
+        self.baud_var = tk.StringVar(value="115200")
+        self.radius_var = tk.StringVar(value="110")
+        self.sample_time_var = tk.StringVar(value="7")
+        self.step_var = tk.StringVar(value="10")
 
-        self.connect_button = tk.Button(self.frame_conexion, text="Conectar", command=self.conectar)
-        self.connect_button.grid(row=0, column=2, padx=5, pady=5)
+    def _create_ui(self):
+        """Construye la interfaz."""
+        # --- Sección conexión ---
+        conn_frame = ttk.LabelFrame(self.root, text="Conexión Serial", padding=8)
+        conn_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
 
-        self.disconnect_button = tk.Button(self.frame_conexion, text="Desconectar", command=self.desconectar,
-                                           state=tk.DISABLED)
-        self.disconnect_button.grid(row=0, column=3, padx=5, pady=5)
+        # Fila CNC
+        ttk.Label(conn_frame, text="CNC:").grid(row=0, column=0, padx=(0, 5), pady=2, sticky="w")
+        self.port_cnc_combo = ttk.Combobox(conn_frame, textvariable=self.port_cnc_var, width=18, state="readonly")
+        self.port_cnc_combo.grid(row=0, column=1, padx=5, pady=2)
+        ttk.Label(conn_frame, text="Baud:").grid(row=0, column=2, padx=(5, 2), pady=2)
+        ttk.Entry(conn_frame, textvariable=self.baud_var, width=8).grid(row=0, column=3, padx=2, pady=2)
+        self.btn_connect_cnc = ttk.Button(conn_frame, text="Conectar CNC", command=self._conectar_cnc)
+        self.btn_connect_cnc.grid(row=0, column=4, padx=5)
+        self.btn_disconnect_cnc = ttk.Button(conn_frame, text="Desconectar", command=self._desconectar_cnc, state=tk.DISABLED)
+        self.btn_disconnect_cnc.grid(row=0, column=5, padx=2)
 
-        # Sección de controles y parámetros
-        self.frame_parametros = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_parametros.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        # Fila Gaussmeter
+        ttk.Label(conn_frame, text="Gaussmeter:").grid(row=1, column=0, padx=(0, 5), pady=2, sticky="w")
+        self.port_gaussmeter_combo = ttk.Combobox(conn_frame, textvariable=self.port_gaussmeter_var, width=18, state="readonly")
+        self.port_gaussmeter_combo.grid(row=1, column=1, padx=5, pady=2)
+        self.btn_connect_gaussmeter = ttk.Button(conn_frame, text="Conectar Gaussmeter", command=self._conectar_gaussmeter)
+        self.btn_connect_gaussmeter.grid(row=1, column=4, padx=5)
+        self.btn_disconnect_gaussmeter = ttk.Button(conn_frame, text="Desconectar", command=self._desconectar_gaussmeter, state=tk.DISABLED)
+        self.btn_disconnect_gaussmeter.grid(row=1, column=5, padx=2)
 
-        tk.Label(self.frame_parametros, text="Campo para definir R").grid(row=0, column=0, padx=5, pady=5)
-        tk.Entry(self.frame_parametros).grid(row=0, column=1, padx=5, pady=5)
+        ttk.Button(conn_frame, text="Actualizar puertos", command=self._refresh_ports).grid(row=0, column=6, rowspan=2, padx=15)
+        self._refresh_ports()
 
-        tk.Label(self.frame_parametros, text="Campo para definir tiempo").grid(row=1, column=0, padx=5, pady=5)
-        tk.Entry(self.frame_parametros).grid(row=1, column=1, padx=5, pady=5)
+        # --- Parámetros de escaneo ---
+        param_frame = ttk.LabelFrame(self.root, text="Parámetros de Escaneo", padding=8)
+        param_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
 
-        tk.Label(self.frame_parametros, text="Para definir puntos").grid(row=2, column=0, padx=5, pady=5)
-        tk.Entry(self.frame_parametros).grid(row=2, column=1, padx=5, pady=5)
+        ttk.Label(param_frame, text="Radio (mm):").grid(row=0, column=0, padx=5, pady=3, sticky="w")
+        ttk.Entry(param_frame, textvariable=self.radius_var, width=10).grid(row=0, column=1, padx=5, pady=3)
 
-        tk.Button(self.frame_parametros, text="Simular", command=self.simular).grid(row=3, column=0, padx=5, pady=5)
-        tk.Button(self.frame_parametros, text="Iniciar", command=self.iniciar).grid(row=3, column=1, padx=5, pady=5)
+        ttk.Label(param_frame, text="Tiempo muestra (s):").grid(row=1, column=0, padx=5, pady=3, sticky="w")
+        ttk.Entry(param_frame, textvariable=self.sample_time_var, width=10).grid(row=1, column=1, padx=5, pady=3)
 
-        # Sección de movimiento
-        self.frame_movimiento = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_movimiento.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
+        ttk.Label(param_frame, text="Paso (mm):").grid(row=2, column=0, padx=5, pady=3, sticky="w")
+        ttk.Entry(param_frame, textvariable=self.step_var, width=10).grid(row=2, column=1, padx=5, pady=3)
 
-        tk.Button(self.frame_movimiento, text="Arriba", command=self.mover_arriba).grid(row=0, column=1, padx=5, pady=5)
-        tk.Button(self.frame_movimiento, text="Izquierda", command=self.mover_izquierda).grid(row=1, column=0, padx=5,
-                                                                                              pady=5)
-        tk.Button(self.frame_movimiento, text="Centro", command=lambda: None).grid(row=1, column=1, padx=5, pady=5)
-        tk.Button(self.frame_movimiento, text="Derecha", command=self.mover_derecha).grid(row=1, column=2, padx=5,
-                                                                                          pady=5)
-        tk.Button(self.frame_movimiento, text="Abajo", command=self.mover_abajo).grid(row=2, column=1, padx=5, pady=5)
+        ttk.Separator(param_frame, orient="horizontal").grid(row=3, column=0, columnspan=2, sticky="ew", pady=8)
 
-        # Sección de origen
-        self.frame_origen = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_origen.grid(row=1, column=2, padx=10, pady=10, sticky="nsew")
+        self.btn_simular = ttk.Button(param_frame, text="Simular (visualización)", command=self._simular)
+        self.btn_simular.grid(row=4, column=0, columnspan=2, pady=5)
+        self.btn_iniciar = ttk.Button(param_frame, text="Iniciar escaneo completo", command=self._iniciar)
+        self.btn_iniciar.grid(row=5, column=0, columnspan=2, pady=5)
 
-        tk.Button(self.frame_origen, text="Origen X", command=self.definir_origen_x).grid(row=0, column=0, padx=5,
-                                                                                          pady=5)
-        tk.Button(self.frame_origen, text="Origen Y", command=self.definir_origen_y).grid(row=1, column=0, padx=5,
-                                                                                          pady=5)
-        tk.Button(self.frame_origen, text="Origen Z", command=self.definir_origen_z).grid(row=2, column=0, padx=5,
-                                                                                          pady=5)
-        tk.Button(self.frame_origen, text="Origen", command=self.definir_origen).grid(row=3, column=0, padx=5, pady=5)
+        # --- Controles de movimiento ---
+        move_frame = ttk.LabelFrame(self.root, text="Movimiento (Jog)", padding=8)
+        move_frame.grid(row=1, column=1, padx=10, pady=5, sticky="nsew")
 
-        # Sección de gráficas de lectura
-        self.frame_graficas = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_graficas.grid(row=2, column=2, padx=10, pady=10, sticky="nsew")
-        tk.Label(self.frame_graficas, text="Gráficos de lectura").pack(padx=5, pady=5)
+        ttk.Button(move_frame, text="▲\nArriba", command=lambda: self._mover(0, 1, 0)).grid(row=0, column=1, padx=3, pady=3)
+        ttk.Button(move_frame, text="◀ Izq", command=lambda: self._mover(-1, 0, 0)).grid(row=1, column=0, padx=3, pady=3)
+        ttk.Button(move_frame, text="Centro", command=self._ir_centro).grid(row=1, column=1, padx=3, pady=3)
+        ttk.Button(move_frame, text="Der ▶", command=lambda: self._mover(1, 0, 0)).grid(row=1, column=2, padx=3, pady=3)
+        ttk.Button(move_frame, text="▼\nAbajo", command=lambda: self._mover(0, -1, 0)).grid(row=2, column=1, padx=3, pady=3)
 
-        # Sección de tabla
-        self.frame_tabla = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_tabla.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+        # --- Origen ---
+        orig_frame = ttk.LabelFrame(self.root, text="Definir Origen", padding=8)
+        orig_frame.grid(row=1, column=2, padx=10, pady=5, sticky="nsew")
 
-        for i in range(5):
-            tk.Label(self.frame_tabla, text=f"Columna {i + 1}").grid(row=0, column=i, padx=5, pady=5)
+        ttk.Button(orig_frame, text="Origen X", command=lambda: self._enviar_gcode("G28 X")).pack(fill=tk.X, pady=3)
+        ttk.Button(orig_frame, text="Origen Y", command=lambda: self._enviar_gcode("G28 Y")).pack(fill=tk.X, pady=3)
+        ttk.Button(orig_frame, text="Origen Z", command=lambda: self._enviar_gcode("G28 Z")).pack(fill=tk.X, pady=3)
+        ttk.Button(orig_frame, text="Origen (G28)", command=lambda: self._enviar_gcode("G28")).pack(fill=tk.X, pady=3)
+        ttk.Button(orig_frame, text="Unlock ($X)", command=lambda: self._enviar_gcode("$X")).pack(fill=tk.X, pady=3)
 
-        # Sección de terminal de salida
-        self.frame_terminal = tk.Frame(self.root, bd=2, relief="solid")
-        self.frame_terminal.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
+        ttk.Separator(orig_frame, orient="horizontal").pack(fill=tk.X, pady=5)
+        ttk.Button(orig_frame, text="Leer Gaussmeter", command=self._leer_gaussmeter).pack(fill=tk.X, pady=3)
 
-        self.output_terminal = scrolledtext.ScrolledText(self.frame_terminal, wrap=tk.WORD, height=10)
-        self.output_terminal.pack(fill=tk.BOTH, expand=True)
+        # --- Terminal ---
+        term_frame = ttk.LabelFrame(self.root, text="Terminal", padding=5)
+        term_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=5, sticky="nsew")
 
-        # Botón de parar
-        tk.Button(self.root, text="PARAR", command=self.parar, fg="red").grid(row=4, column=0, columnspan=3, padx=10,
-                                                                              pady=10, sticky="ew")
+        self.terminal = scrolledtext.ScrolledText(term_frame, wrap=tk.WORD, height=10, state=tk.DISABLED)
+        self.terminal.pack(fill=tk.BOTH, expand=True)
 
-    def listar_puertos(self):
-        # Obtener una lista de puertos seriales disponibles
-        puertos_disponibles = [port.device for port in serial.tools.list_ports.comports()]
-        # Agregar COM5 como opción
-        if 'COM5' not in puertos_disponibles:
-            puertos_disponibles.append('COM5')
-        return puertos_disponibles
+        # --- Botón parar ---
+        self.btn_parar = ttk.Button(self.root, text="⏹ PARAR", command=self._parar)
+        self.btn_parar.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-    def conectar(self):
-        self.output_terminal.insert(tk.END, "Conectado\n")
+    def _configure_grid(self):
+        """Configura pesos de filas/columnas para redimensionado."""
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(2, weight=1)
+        self.root.rowconfigure(2, weight=1)
 
-        # Conectar al puerto serial seleccionado con la velocidad especificada
-        puerto = self.port_var.get()
-        velocidad = int(self.baud_var.get())
+    def _get_available_ports(self):
+        """Obtiene lista de puertos seriales disponibles."""
+        ports = [p.device for p in serial.tools.list_ports.comports()]
+        if sys.platform == "win32":
+            for p in ("COM3", "COM4"):
+                if p not in ports:
+                    ports.append(p)
+        else:
+            for p in ("/dev/ttyACM0", "/dev/ttyUSB0"):
+                if p not in ports:
+                    ports.append(p)
+        return sorted(ports)
 
+    def _refresh_ports(self):
+        """Actualiza la lista de puertos en ambos selectores."""
+        ports = self._get_available_ports()
+        self.port_cnc_combo["values"] = ports
+        self.port_gaussmeter_combo["values"] = ports
+        if ports:
+            if not self.port_cnc_var.get():
+                self.port_cnc_var.set("/dev/ttyACM0" if "/dev/ttyACM0" in ports else ports[0])
+            if not self.port_gaussmeter_var.get():
+                default_g = "/dev/ttyUSB0" if sys.platform != "win32" else "COM4"
+                self.port_gaussmeter_var.set(default_g if default_g in ports else ports[-1] if len(ports) > 1 else ports[0])
+
+    def _log(self, msg, level="info"):
+        """Escribe mensaje en terminal."""
+        self.terminal.configure(state=tk.NORMAL)
+        prefix = {"info": "", "ok": "[OK] ", "err": "[Error] "}.get(level, "")
+        self.terminal.insert(tk.END, f"{prefix}{msg}\n")
+        self.terminal.see(tk.END)
+        self.terminal.configure(state=tk.DISABLED)
+        self.root.update_idletasks()
+
+    def _conectar_cnc(self):
+        """Establece conexión serial con el CNC."""
+        puerto = self.port_cnc_var.get().strip()
+        if not puerto:
+            messagebox.showwarning("Aviso", "Seleccione un puerto para el CNC.")
+            return
         try:
-            self.serial = serial.Serial(port=puerto, baudrate=velocidad, timeout=1)
-            self.connect_button.configure(state=tk.DISABLED)
-            self.disconnect_button.configure(state=tk.NORMAL)
-            print(f"Conectado a {puerto} a {velocidad} bps")
+            baud = int(self.baud_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Velocidad de baudios inválida.")
+            return
+        try:
+            self.serial = serial.Serial(port=puerto, baudrate=baud, timeout=1)
+            self.btn_connect_cnc.configure(state=tk.DISABLED)
+            self.btn_disconnect_cnc.configure(state=tk.NORMAL)
+            self._log(f"CNC conectado: {puerto} @ {baud} bps", "ok")
         except serial.SerialException as e:
-            print(f"Error al conectar: {e}")
+            self._log(str(e), "err")
+            messagebox.showerror("Error de conexión CNC", str(e))
 
-    def desconectar(self):
-        self.output_terminal.insert(tk.END, "Desconectado\n")
-
-        # Desconectar el puerto serial
-        if self.serial:
+    def _desconectar_cnc(self):
+        """Cierra conexión serial del CNC."""
+        if self.serial and self.serial.is_open:
             self.serial.close()
-            self.connect_button.configure(state=tk.NORMAL)
-            self.disconnect_button.configure(state=tk.DISABLED)
-            print("Desconectado")
+            self.serial = None
+        self.btn_connect_cnc.configure(state=tk.NORMAL)
+        self.btn_disconnect_cnc.configure(state=tk.DISABLED)
+        self._log("CNC desconectado.")
 
-    def simular(self):
-        self.output_terminal.insert(tk.END, "Simulación en progreso...\n")
-        visual_bd_test.plot()
+    def _conectar_gaussmeter(self):
+        """Establece conexión con el Gaussmeter."""
+        puerto = self.port_gaussmeter_var.get().strip()
+        if not puerto:
+            messagebox.showwarning("Aviso", "Seleccione un puerto para el Gaussmeter.")
+            return
+        if not GaussmeterReader:
+            self._log("GaussmeterReader no disponible.", "err")
+            return
+        try:
+            self.gaussmeter = GaussmeterReader(magnetometer_port=puerto)
+            self.btn_connect_gaussmeter.configure(state=tk.DISABLED)
+            self.btn_disconnect_gaussmeter.configure(state=tk.NORMAL)
+            self._log(f"Gaussmeter conectado: {puerto}", "ok")
+        except Exception as e:
+            self._log(str(e), "err")
+            messagebox.showerror("Error de conexión Gaussmeter", str(e))
 
-    def iniciar(self):
-        self.output_terminal.insert(tk.END, "Iniciando...\n")
-        main.main()
+    def _desconectar_gaussmeter(self):
+        """Cierra conexión del Gaussmeter."""
+        if self.gaussmeter:
+            try:
+                self.gaussmeter.close()
+            except Exception:
+                pass
+            self.gaussmeter = None
+        self.btn_connect_gaussmeter.configure(state=tk.NORMAL)
+        self.btn_disconnect_gaussmeter.configure(state=tk.DISABLED)
+        self._log("Gaussmeter desconectado.")
 
-    def parar(self):
-        self.output_terminal.insert(tk.END, "Parado\n")
+    def _leer_gaussmeter(self):
+        """Lee y muestra valor del gaussmeter en el terminal."""
+        if not self.gaussmeter:
+            self._log("Conecte primero el Gaussmeter.", "err")
+            return
+        try:
+            valor = self.gaussmeter.read_gaussmeter()
+            self._log(f"Gaussmeter: {valor:.4f} Gauss", "ok")
+        except Exception as e:
+            self._log(str(e), "err")
 
-    def mover_arriba(self):
-        self.output_terminal.insert(tk.END, "Moviendo hacia arriba\n")
+    def _enviar_gcode(self, gcode):
+        """Envía código G al CNC si hay conexión."""
+        if not self.serial or not self.serial.is_open:
+            self._log("Conectar primero el puerto serial.", "err")
+            return
+        cmd = f"{gcode.strip()}\n"
+        try:
+            self.serial.write(cmd.encode("utf-8"))
+            self._log(f"Enviado: {gcode.strip()}")
+        except serial.SerialException as e:
+            self._log(str(e), "err")
 
-    def mover_abajo(self):
-        self.output_terminal.insert(tk.END, "Moviendo hacia abajo\n")
+    def _mover(self, dx, dy, dz):
+        """Movimiento relativo (incremental)."""
+        step = self.STEP_MM
+        x = dx * step
+        y = dy * step
+        z = dz * step
+        cmd = f"G91 G1 X{x:.1f} Y{y:.1f} Z{z:.1f} F{self.FEED_RATE}"
+        self._enviar_gcode(cmd)
+        dirs = []
+        if dx: dirs.append("derecha" if dx > 0 else "izquierda")
+        if dy: dirs.append("arriba" if dy > 0 else "abajo")
+        if dz: dirs.append("Z+" if dz > 0 else "Z-")
+        if dirs:
+            self._log(f"Movimiento: {', '.join(dirs)}")
 
-    def mover_izquierda(self):
-        self.output_terminal.insert(tk.END, "Moviendo hacia la izquierda\n")
+    def _ir_centro(self):
+        """Va al centro (0,0,0)."""
+        self._enviar_gcode("G90 G1 X0 Y0 Z0 F400")
+        self._log("Moviendo a centro (0,0,0)")
 
-    def mover_derecha(self):
-        self.output_terminal.insert(tk.END, "Moviendo hacia la derecha\n")
+    def _simular(self):
+        """Abre visualización 3D en tiempo real (en thread)."""
+        if not MODULES_AVAILABLE:
+            self._log("Módulos main/visual_bd_test no disponibles.", "err")
+            return
+        self._log("Iniciando visualización 3D...")
+        def run():
+            try:
+                visual_bd_test.plot()
+            except Exception as e:
+                self.root.after(0, lambda: self._log(str(e), "err"))
+        threading.Thread(target=run, daemon=True).start()
 
-    def definir_origen_x(self):
-        self.output_terminal.insert(tk.END, "Origen X definido\n")
+    def _iniciar(self):
+        """Inicia escaneo completo (main) en thread."""
+        if not MODULES_AVAILABLE:
+            self._log("Módulo main no disponible.", "err")
+            return
+        if self._running_thread and self._running_thread.is_alive():
+            self._log("Escaneo ya en ejecución.", "err")
+            return
+        self._log("Iniciando escaneo completo (main)...")
+        def run():
+            try:
+                main.main()
+                self.root.after(0, lambda: self._log("Escaneo finalizado.", "ok"))
+            except Exception as e:
+                self.root.after(0, lambda: self._log(str(e), "err"))
+        self._running_thread = threading.Thread(target=run, daemon=True)
+        self._running_thread.start()
 
-    def definir_origen_y(self):
-        self.output_terminal.insert(tk.END, "Origen Y definido\n")
+    def _parar(self):
+        """Indica parada (el thread actual no se detiene; útil para feedback)."""
+        self._stop_flag.set()
+        self._log("Solicitud de parada enviada.")
+        # Nota: main.main() no comprueba esta bandera; se necesita modificar main para soporte real.
 
-    def definir_origen_z(self):
-        self.output_terminal.insert(tk.END, "Origen Z definido\n")
-
-    def definir_origen(self):
-        self.output_terminal.insert(tk.END, "Origen general definido\n")
+    def _on_closing(self):
+        """Cierra ventana de forma segura."""
+        self._desconectar_cnc()
+        self._desconectar_gaussmeter()
+        self.root.destroy()
 
 
 if __name__ == "__main__":
